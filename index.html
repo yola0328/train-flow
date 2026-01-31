@@ -3,84 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>列車處理流程</title>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <title>列車處理互動系統</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f7f9; }
+        .box { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .control { background: #eef2f7; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; border-left: 5px solid #007bff; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
+        .btn-confirm { background: #007bff; color: white; }
+        .btn-yes { background: #28a745; color: white; }
+        .btn-no { background: #dc3545; color: white; }
+        .mermaid { background: white; border: 1px solid #ddd; padding: 10px; }
+    </style>
 </head>
 <body>
-<div id="app" style="max-width: 800px; margin: auto; font-family: sans-serif;">
-    <div style="background: #eef; padding: 20px; text-align: center; border-radius: 10px;">
-        <h3 id="step-desc">請點擊下方開始流程</h3>
-        <div id="btn-group">
-            <button onclick="nextStep('STEP1')" style="padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer;">開始處置</button>
+
+<div class="box">
+    <div class="control">
+        <div id="q-text" style="font-size: 1.1rem; margin-bottom: 15px;">準備開始：氣壓式懸吊系統故障處理</div>
+        <div id="btn-area">
+            <button class="btn-confirm" onclick="nextStep('STEP1')">開始處置流程</button>
         </div>
-        <button onclick="location.reload()" style="margin-top: 10px; font-size: 12px;">重新開始</button>
+        <button onclick="location.reload()" style="background:none; color:gray; font-size:12px; border:none; text-decoration:underline;">重設流程</button>
     </div>
-    <div id="graph-container" style="margin-top: 20px; border: 1px solid #ccc;">
-        <div class="mermaid" id="mermaid-svg">
-            graph TD
-                A[氣壓式懸吊系統故障] --> B[Traffic Zone 50% 速限]
-                B --> C[下達 Train Hold]
-                C --> D{壓力是否低於標準?}
-                D -- 是 --> E[到站清車 / 重置 CB7]
-                E --> F((結束))
-                D -- 否 --> G[檢視地板高低差]
-                G --> H{低於月台 > 2.5cm?}
-                H -- 否 --> I[繼續營運 / 端點移除]
-                I --> K((結束))
-                H -- 是 --> J[隨車提醒 / 端點移除]
-                J --> L((結束))
-        </div>
+    <div id="graph-area" class="mermaid">
+        graph TD
+            A[氣壓式懸吊系統故障] --> B[Traffic Zone 50% 速限]
+            B --> C[下達 Train Hold]
+            C --> D{壓力是否低於標準?}
+            D -- 是 --> E[到站清車 / 重置 CB7]
+            E --> F((結束))
+            D -- 否 --> G[檢視地板高低差]
+            G --> H{低於月台 > 2.5cm?}
+            H -- 否 --> I[繼續營運 / 端點移除]
+            I --> K((結束))
+            H -- 是 --> J[隨車提醒 / 端點移除]
+            J --> L((結束))
     </div>
 </div>
 
 <script>
-    // 強制初始化
     mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
 
     let activeEdges = [];
     let activeNodes = ['A'];
 
     const flow = {
-        'STEP1': { text: "確認：已執行 50% 速限？", btns: [{ label: "確認", next: 'STEP2', edge: 0, node: 'B' }] },
-        'STEP2': { text: "確認：已下達 Train Hold？", btns: [{ label: "確認", next: 'STEP3', edge: 1, node: 'C' }] },
-        'STEP3': { text: "判斷：壓力是否低於標準？", btns: [{ label: "是", next: 'FIN1', edge: 3, node: 'D' }, { label: "否", next: 'STEP4', edge: 5, node: 'D' }], entry: 2 },
-        'FIN1': { text: "處置：重置 CB7", btns: [{ label: "完成", next: 'DONE', edge: 4, node: 'E' }] },
-        'STEP4': { text: "確認：已檢視高低差？", btns: [{ label: "確認", next: 'STEP5', edge: 6, node: 'G' }] },
-        'STEP5': { text: "判斷：落差是否 > 2.5cm？", btns: [{ label: "是", next: 'FIN2', edge: 8, node: 'H' }, { label: "否", next: 'FIN3', edge: 7, node: 'H' }] },
-        'FIN2': { text: "處置：派員隨車提醒", btns: [{ label: "完成", next: 'DONE', edge: 10, node: 'J' }] },
-        'FIN3': { text: "處置：繼續營運", btns: [{ label: "完成", next: 'DONE', edge: 9, node: 'I' }] }
+        'STEP1': { text: "確認：已執行 50% 速限？", btns: [{ label: "確認已執行", nxt: 'STEP2', e: 0, node: 'B' }] },
+        'STEP2': { text: "確認：已下達 Train Hold？", btns: [{ label: "確認已執行", nxt: 'STEP3', e: 1, node: 'C' }] },
+        'STEP3': { text: "判斷：壓力是否低於標準？", btns: [{ label: "是", nxt: 'FIN1', e: 3, node: 'D' }, { label: "否", nxt: 'STEP4', e: 5, node: 'D' }], ent: 2 },
+        'FIN1': { text: "最終處置：到站清車並重置 CB7", btns: [{ label: "處置完畢", nxt: 'DONE', e: 4, node: 'E' }] },
+        'STEP4': { text: "確認：已完成檢視地板高低差？", btns: [{ label: "確認已檢視", nxt: 'STEP5', e: 6, node: 'G' }] },
+        'STEP5': { text: "判斷：落差是否 > 2.5cm？", btns: [{ label: "是", nxt: 'FIN2', e: 8, node: 'H' }, { label: "否", nxt: 'FIN3', e: 7, node: 'H' }] },
+        'FIN2': { text: "最終處置：派員隨車提醒旅客，端點站移除", btns: [{ label: "處置完畢", nxt: 'DONE', e: 10, node: 'J' }] },
+        'FIN3': { text: "最終處置：繼續營運，至端點站移除", btns: [{ label: "處置完畢", nxt: 'DONE', e: 9, node: 'I' }] }
     };
 
     function nextStep(key) {
-        const d = flow[key];
-        if (!d) return;
-        if(d.entry !== undefined) activeEdges.push(d.entry);
-        document.getElementById('step-desc').innerText = d.text;
-        const bg = document.getElementById('btn-group');
-        bg.innerHTML = '';
-        d.btns.forEach(b => {
-            const btn = document.createElement('button');
-            btn.innerText = b.label;
-            btn.style.cssText = "padding: 10px 20px; margin: 5px; cursor: pointer;";
-            btn.onclick = () => {
-                if (b.edge !== undefined) activeEdges.push(b.edge);
+        const step = flow[key];
+        if (!step) return;
+        if(step.ent !== undefined) activeEdges.push(step.ent);
+
+        document.getElementById('q-text').innerText = step.text;
+        const area = document.getElementById('btn-area');
+        area.innerHTML = '';
+
+        step.btns.forEach(b => {
+            const el = document.createElement('button');
+            el.innerText = b.label;
+            el.className = b.label === "是" ? 'btn-yes' : b.label === "否" ? 'btn-no' : 'btn-confirm';
+            el.onclick = () => {
+                if (b.e !== undefined) activeEdges.push(b.e);
                 if (b.node) activeNodes.push(b.node);
-                if (b.next === 'DONE') {
-                    document.getElementById('step-desc').innerText = "處置完成";
-                    bg.innerHTML = "";
-                } else { nextStep(b.next); }
+                if (b.nxt === 'DONE') {
+                    document.getElementById('q-text').innerText = "處置流程結束";
+                    area.innerHTML = "<b>✓ 已結案</b>";
+                } else { nextStep(b.nxt); }
             };
-            bg.appendChild(btn);
+            area.appendChild(el);
         });
         draw();
     }
 
     function draw() {
         let code = `graph TD\nA[氣壓式懸吊系統故障]\nB[Traffic Zone 50% 速限]\nC[下達 Train Hold]\nD{壓力是否低於標準?}\nE[到站清車 / 重置 CB7]\nF((結束))\nG[檢視地板高低差]\nH{低於月台 > 2.5cm?}\nI[繼續營運 / 端點移除]\nJ[隨車提醒 / 端點移除]\nK((結束))\nL((結束))\nA --> B\nB --> C\nC --> D\nD -- 是 --> E\nE --> F\nD -- 否 --> G\nG --> H\nH -- 否 --> I\nH -- 是 --> J\nI --> K\nJ --> L\nclassDef act fill:#fff3cd,stroke:#ffc107,stroke-width:4px;`;
-        activeEdges.forEach(i => code += `\nlinkStyle ${i} stroke:#dc3545,stroke-width:5px;`);
-        activeNodes.forEach(n => code += `\nclass ${n} act;`);
-        const container = document.getElementById('graph-container');
-        container.innerHTML = `<div class="mermaid">${code}</div>`;
+        [...new Set(activeEdges)].forEach(idx => code += `\nlinkStyle ${idx} stroke:#dc3545,stroke-width:5px;`);
+        [...new Set(activeNodes)].forEach(n => code += `\nclass ${n} act;`);
+        document.getElementById('graph-area').innerHTML = code;
+        document.getElementById('graph-area').removeAttribute('data-processed');
         mermaid.run();
     }
 </script>
