@@ -3,37 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>列車異常處理系統</title>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <title>列車處理流程系統</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; padding: 15px; background: #f0f2f5; }
-        .card { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .header { text-align: center; border-bottom: 2px solid #007bff; margin-bottom: 20px; padding-bottom: 10px; }
-        .q-box { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; min-height: 100px; display: flex; flex-direction: column; justify-content: center; }
-        .q-text { font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; color: #1c1e21; }
-        .btn-group button { padding: 12px 20px; margin: 5px; font-size: 1rem; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; transition: 0.2s; }
-        .btn-confirm { background: #007bff; color: white; width: 80%; }
-        .btn-yes { background: #28a745; color: white; flex: 1; }
-        .btn-no { background: #dc3545; color: white; flex: 1; }
-        .btn-reset { background: none; color: #65676b; font-size: 0.8rem; margin-top: 15px; text-decoration: underline; border: none; cursor: pointer; }
-        #mermaid-box { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 10px; overflow-x: auto; }
+        body { font-family: "Microsoft JhengHei", sans-serif; background: #f0f2f5; padding: 15px; }
+        .card { max-width: 650px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .info-box { background: #e7f3ff; border-left: 5px solid #007bff; padding: 15px; border-radius: 5px; margin-bottom: 20px; text-align: center; }
+        .step-title { font-size: 1.2rem; font-weight: bold; color: #0056b3; margin-bottom: 15px; }
+        .btn-main { padding: 12px 25px; margin: 5px; font-size: 1rem; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; transition: 0.2s; }
+        .confirm { background: #007bff; color: white; width: 90%; }
+        .yes { background: #28a745; color: white; min-width: 100px; }
+        .no { background: #dc3545; color: white; min-width: 100px; }
+        #mermaid-box { background: white; border: 1px solid #ddd; padding: 10px; border-radius: 8px; min-height: 400px; overflow-x: auto; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div class="header"><h3>異常處理互動流程</h3></div>
-    
-    <div class="q-box">
-        <div id="q-text" class="q-text">即將開始：氣壓式懸吊系統故障處置</div>
+    <div class="info-box">
+        <div id="q-text" class="step-title">氣壓式懸吊系統故障處理流程</div>
         <div id="btn-area">
-            <button class="btn-confirm" onclick="nextStep('STEP1')">開始執行</button>
+            <button class="btn-main confirm" onclick="nextStep('STEP1')">開始處置程序</button>
         </div>
-        <button class="btn-reset" onclick="location.reload()">🔄 重設所有進度</button>
+        <button onclick="location.reload()" style="margin-top:15px; background:none; border:none; color:#666; text-decoration:underline; cursor:pointer;">🔄 重新開始</button>
     </div>
 
     <div id="mermaid-box">
-        <div class="mermaid" id="graph">
+        <div class="mermaid" id="main-svg">
             graph TD
                 A[氣壓式懸吊系統故障] --> B[Traffic Zone 50% 速限]
                 B --> C[下達 Train Hold]
@@ -53,63 +49,51 @@
 <script>
     mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
 
-    let historyEdges = [];
-    let historyNodes = ['A'];
+    let activeEdges = [];
+    let activeNodes = ['A'];
 
-    // 邏輯定義
-    const flowData = {
-        'STEP1': { text: "確認已執行：Traffic Zone 50% 速限？", btns: [{ label: "確認已執行", nxt: 'STEP2', eIdx: 0, nId: 'B' }] },
-        'STEP2': { text: "確認已執行：即將停靠站下達 Train Hold？", btns: [{ label: "確認已執行", nxt: 'STEP3', eIdx: 1, nId: 'C' }] },
-        'STEP3': { text: "判斷：256警訊對車壓力是否低於標準？", btns: [{ label: "是", nxt: 'FIN_CB7', eIdx: 3, nId: 'D' }, { label: "否", nxt: 'STEP4', eIdx: 5, nId: 'D' }], entE: 2 },
-        'FIN_CB7': { text: "最終處置：到站清車，移至避車空間重置 CB7", btns: [{ label: "完成處置", nxt: 'DONE', eIdx: 4, nId: 'E' }] },
-        'STEP4': { text: "確認已執行：派員至月台檢視地板與月台高低差？", btns: [{ label: "確認已檢視", nxt: 'STEP5', eIdx: 6, nId: 'G' }] },
-        'STEP5': { text: "判斷：故障車廂地板高度是否低於月台 2.5 公分？", btns: [{ label: "是 (落差大)", nxt: 'FIN_STAFF', eIdx: 8, nId: 'H' }, { label: "否 (落差小)", nxt: 'FIN_NORM', eIdx: 7, nId: 'H' }] },
-        'FIN_NORM': { text: "最終處置：繼續營運，至端點站移除正線", btns: [{ label: "確認結案", nxt: 'DONE', eIdx: 9, nId: 'I' }] },
-        'FIN_STAFF': { text: "最終處置：派員隨車提醒旅客，至端點站移除正線", btns: [{ label: "確認結案", nxt: 'DONE', eIdx: 10, nId: 'J' }] }
+    const flowLogic = {
+        'STEP1': { t: "【執行確認】是否已下達 Traffic Zone 50% 速限？", b: [{ l: "確認已執行", n: 'STEP2', e: 0, o: 'B' }] },
+        'STEP2': { t: "【執行確認】是否已對即將停靠站下達 Train Hold？", b: [{ l: "確認已執行", n: 'STEP3', e: 1, o: 'C' }] },
+        'STEP3': { t: "【判斷】256警訊對車壓力是否低於標準？", b: [{ l: "是", n: 'FIN1', e: 3, o: 'D' }, { l: "否", n: 'STEP4', e: 5, o: 'D' }], ent: 2 },
+        'FIN1': { t: "【處置】執行到站清車，並重置 B CAR CB7", b: [{ l: "處置完成並結案", n: 'DONE', e: 4, o: 'E' }] },
+        'STEP4': { t: "【執行確認】是否已派員至月台檢視地板高低差？", b: [{ l: "確認已檢視", n: 'STEP5', e: 6, o: 'G' }] },
+        'STEP5': { t: "【判斷】故障車廂地板是否低於月台超過 2.5 公分？", b: [{ l: "是 (落差大)", n: 'FIN2', e: 8, o: 'H' }, { l: "否 (落差小)", n: 'FIN3', e: 7, o: 'H' }] },
+        'FIN2': { t: "【處置】派員隨車提醒旅客，至端點站移除正線", b: [{ l: "處置完成並結案", n: 'DONE', e: 10, o: 'J' }] },
+        'FIN3': { t: "【處置】繼續營運，至端點站移除正線", b: [{ l: "處置完成並結案", n: 'DONE', e: 9, o: 'I' }] }
     };
 
     function nextStep(key) {
-        const step = flowData[key];
-        if (!step) return;
-        if(step.entE !== undefined) historyEdges.push(step.entE);
+        const s = flowLogic[key];
+        if (!s) return;
+        if(s.ent !== undefined) activeEdges.push(s.ent);
 
-        document.getElementById('q-text').innerText = step.text;
+        document.getElementById('q-text').innerText = s.t;
         const area = document.getElementById('btn-area');
         area.innerHTML = '';
 
-        const wrapper = document.createElement('div');
-        wrapper.style.display = 'flex';
-        wrapper.style.justifyContent = 'center';
-
-        step.btns.forEach(b => {
-            const el = document.createElement('button');
-            el.innerText = b.label;
-            el.className = b.label === "是" || b.label.includes("大") ? 'btn-yes' : b.label === "否" || b.label.includes("小") ? 'btn-no' : 'btn-confirm';
-            el.onclick = () => {
-                if (b.eIdx !== undefined) historyEdges.push(b.eIdx);
-                if (b.nId) historyNodes.push(b.nId);
-                if (b.nxt === 'DONE') {
-                    document.getElementById('q-text').innerText = "✅ 處置流程結束";
+        s.b.forEach(o => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-main ' + (o.l === '是' || o.l.includes('大') ? 'yes' : o.l === '否' || o.l.includes('小') ? 'no' : 'confirm');
+            btn.innerText = o.l;
+            btn.onclick = () => {
+                if(o.e !== undefined) activeEdges.push(o.e);
+                if(o.o) activeNodes.push(o.o);
+                if(o.n === 'DONE') {
+                    document.getElementById('q-text').innerText = "✅ 程序執行完畢，請依紅線路徑確認處置。";
                     area.innerHTML = "";
-                } else { nextStep(b.nxt); }
+                } else { nextStep(o.n); }
             };
-            wrapper.appendChild(el);
+            area.appendChild(btn);
         });
-        area.appendChild(wrapper);
-        render();
+        draw();
     }
 
-    function render() {
-        let code = `graph TD\n` +
-            `A[氣壓式懸吊系統故障]\nB[Traffic Zone 50% 速限]\nC[下達 Train Hold]\nD{壓力是否低於標準?}\nE[到站清車 / 重置 CB7]\nF((結束))\nG[檢視地板高低差]\nH{低於月台 > 2.5cm?}\nI[繼續營運 / 端點移除]\nJ[隨車提醒 / 端點移除]\nK((結束))\nL((結束))\n` +
-            `A --> B\nB --> C\nC --> D\nD -- 是 --> E\nE --> F\nD -- 否 --> G\nG --> H\nH -- 否 --> I\nH -- 是 --> J\nI --> K\nJ --> L\n` +
-            `classDef act fill:#fff3cd,stroke:#ffc107,stroke-width:4px;`;
-
-        [...new Set(historyEdges)].forEach(i => code += `\nlinkStyle ${i} stroke:#dc3545,stroke-width:5px;`);
-        [...new Set(historyNodes)].forEach(n => code += `\nclass ${n} act;`);
-
-        const box = document.getElementById('mermaid-box');
-        box.innerHTML = `<div class="mermaid">${code}</div>`;
+    function draw() {
+        let code = `graph TD\nA[氣壓式懸吊系統故障]\nB[Traffic Zone 50% 速限]\nC[下達 Train Hold]\nD{壓力是否低於標準?}\nE[到站清車 / 重置 CB7]\nF((結束))\nG[檢視地板高低差]\nH{低於月台 > 2.5cm?}\nI[繼續營運 / 端點移除]\nJ[隨車提醒 / 端點移除]\nK((結束))\nL((結束))\nA --> B\nB --> C\nC --> D\nD -- 是 --> E\nE --> F\nD -- 否 --> G\nG --> H\nH -- 否 --> I\nH -- 是 --> J\nI --> K\nJ --> L\nclassDef act fill:#fff3cd,stroke:#ffc107,stroke-width:4px;`;
+        [...new Set(activeEdges)].forEach(i => code += `\nlinkStyle ${i} stroke:#dc3545,stroke-width:5px;`);
+        [...new Set(activeNodes)].forEach(n => code += `\nclass ${n} act;`);
+        document.getElementById('mermaid-box').innerHTML = `<div class="mermaid">${code}</div>`;
         mermaid.run();
     }
 </script>
