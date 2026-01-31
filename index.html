@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>列車異常處理系統</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body { font-family: "Microsoft JhengHei", "Segoe UI", sans-serif; padding: 20px; background: #f4f7f9; line-height: 1.6; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .interactive-panel { background: #fff; border-left: 5px solid #007bff; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; background: #f8fbff; }
+        .question-text { font-size: 1.3rem; font-weight: bold; color: #333; margin-bottom: 20px; }
+        .btn-group button { padding: 12px 30px; margin: 10px; font-size: 1.1rem; cursor: pointer; border: none; border-radius: 50px; transition: 0.3s; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-confirm { background: #007bff; color: white; }
+        .btn-yes { background: #28a745; color: white; }
+        .btn-no { background: #dc3545; color: white; }
+        .btn-reset { background: #6c757d; color: white; margin-top: 20px; font-size: 0.9rem; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); opacity: 0.9; }
+        #mermaid-box { background: white; border: 1px solid #eee; padding: 15px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="interactive-panel">
+        <div id="step-desc" class="question-text">列車異常事件處理：氣壓式懸吊系統故障</div>
+        <div id="btn-group">
+            <button class="btn-confirm" onclick="nextStep('STEP1')">開始標準處置程序</button>
+        </div>
+        <button class="btn-reset" onclick="window.location.reload()">重新開始流程</button>
+    </div>
+
+    <div id="mermaid-box">
+        <div class="mermaid" id="graph-div">
+            graph TD
+                A[氣壓式懸吊系統故障]
+                B[Traffic Zone 50% 速限]
+                C[下達 Train Hold]
+                D{壓力是否低於標準?}
+                E[到站清車 / 重置 CB7]
+                F((結束))
+                G[檢視地板高低差]
+                H{低於月台 > 2.5cm?}
+                I[繼續營運 / 端點移除]
+                J[隨車提醒 / 端點移除]
+                K((結束))
+                L((結束))
+
+                A --> B
+                B --> C
+                C --> D
+                D -- 是 --> E
+                E --> F
+                D -- 否 --> G
+                G --> H
+                H -- 否 --> I
+                H -- 是 --> J
+                I --> K
+                J --> L
+        </div>
+    </div>
+</div>
+
+<script>
+    mermaid.initialize({ startOnLoad: false, theme: 'neutral', securityLevel: 'loose' });
+
+    let activeEdges = [];
+    let activeNodes = ['A'];
+
+    const flow = {
+        'STEP1': {
+            text: "第一步：確認已執行 Traffic Zone 50% 速限？",
+            btns: [{ label: "確認已執行", next: 'STEP2', edge: 0, node: 'B' }]
+        },
+        'STEP2': {
+            text: "第二步：確認已下達 Train Hold？",
+            btns: [{ label: "確認已執行", next: 'STEP3', edge: 1, node: 'C' }]
+        },
+        'STEP3': {
+            text: "判斷：256警訊對車壓力 < 36psi 且 連結對車 < 80psi?",
+            btns: [
+                { label: "是", next: 'FINAL_CB7', edge: 3, node: 'D' }, 
+                { label: "否", next: 'STEP4', edge: 5, node: 'D' }
+            ],
+            entryEdge: 2
+        },
+        'FINAL_CB7': {
+            text: "最終處置：到站清車，移至避車空間重置 CB7",
+            btns: [{ label: "處置完成，結案", next: 'DONE', edge: 4, node: 'E' }]
+        },
+        'STEP4': {
+            text: "第三步：確認已完成派員檢視地板與月台高低差？",
+            btns: [{ label: "確認已執行", next: 'STEP5', edge: 6, node: 'G' }]
+        },
+        'STEP5': {
+            text: "判斷：故障車廂地板高度是否低於月台 2.5 公分?",
+            btns: [
+                { label: "是", next: 'FINAL_STAFF', edge: 8, node: 'H' },
+                { label: "否", next: 'FINAL_NORMAL', edge: 7, node: 'H' }
+            ]
+        },
+        'FINAL_NORMAL': {
+            text: "最終處置：繼續營運，至端點站移除正線",
+            btns: [{ label: "處置完成，結案", next: 'DONE', edge: 9, node: 'I' }]
+        },
+        'FINAL_STAFF': {
+            text: "最終處置：派員隨車提醒旅客，至端點站移除正線",
+            btns: [{ label: "處置完成，結案", next: 'DONE', edge: 10, node: 'J' }]
+        }
+    };
+
+    function nextStep(stepKey) {
+        const data = flow[stepKey];
+        if (!data) return;
+        if(data.entryEdge !== undefined) activeEdges.push(data.entryEdge);
+
+        document.getElementById('step-desc').innerText = data.text;
+        const btnGroup = document.getElementById('btn-group');
+        btnGroup.innerHTML = '';
+
+        data.btns.forEach(btn => {
+            const b = document.createElement('button');
+            if (btn.label === "是") b.className = 'btn-yes';
+            else if (btn.label === "否") b.className = 'btn-no';
+            else b.className = 'btn-confirm';
+
+            b.innerText = btn.label;
+            b.onclick = () => {
+                if (btn.edge !== undefined) activeEdges.push(btn.edge);
+                if (btn.node) activeNodes.push(btn.node);
+                if (btn.next === 'DONE') finish(); else nextStep(btn.next);
+            };
+            btnGroup.appendChild(b);
+        });
+        draw();
+    }
+
+    function finish() {
+        document.getElementById('step-desc').innerText = "處置流程已全部執行並記錄。";
+        document.getElementById('btn-group').innerHTML = "<b style='color:#28a745; font-size:1.5rem;'>流程結束</b>";
+        draw();
+    }
+
+    function draw() {
+        let code = `graph TD
+            A[氣壓式懸吊系統故障]
+            B[Traffic Zone 50% 速限]
+            C[下達 Train Hold]
+            D{壓力是否低於標準?}
+            E[到站清車 / 重置 CB7]
+            F((結束))
+            G[檢視地板高低差]
+            H{低於月台 > 2.5cm?}
+            I[繼續營運 / 端點移除]
+            J[隨車提醒 / 端點移除]
+            K((結束))
+            L((結束))
+            A --> B
+            B --> C
+            C --> D
+            D -- 是 --> E
+            E --> F
+            D -- 否 --> G
+            G --> H
+            H -- 否 --> I
+            H -- 是 --> J
+            I --> K
+            J --> L
+            classDef active fill:#fff3cd,stroke:#ffc107,stroke-width:4px;`;
+        [...new Set(activeEdges)].forEach(idx => code += `\nlinkStyle ${idx} stroke:#dc3545,stroke-width:5px;`);
+        [...new Set(activeNodes)].forEach(n => code += `\nclass ${n} active;`);
+        const box = document.getElementById('mermaid-box');
+        box.innerHTML = `<div class="mermaid">${code}</div>`;
+        mermaid.run();
+    }
+    window.onload = () => { mermaid.run(); };
+</script>
+
+</body>
+</html>
